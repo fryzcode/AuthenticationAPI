@@ -40,13 +40,25 @@ namespace MyApp.Controllers
                 UserName = registerUser.Username
             };
 
-            var result = await _userManager.CreateAsync(user, registerUser.Password);
+            if (await _roleManager.RoleExistsAsync(role))
+            {
+                var result = await _userManager.CreateAsync(user, registerUser.Password);
 
-            return result.Succeeded
-                ? StatusCode(StatusCodes.Status201Created, 
-                   new Response { Status = "Success", Message = "User Created Successfull!" })
-                : (IActionResult)StatusCode(StatusCodes.Status500InternalServerError, 
-                   new Response { Status = "Error", Message = "User Failed to Create!" });
+                if (!result.Succeeded)
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                       new Response { Status = "Error", Message = "User Failed to Create!" });
+                }
+
+                await _userManager.AddToRoleAsync(user, role);
+                    return StatusCode(StatusCodes.Status201Created,
+                        new Response { Status = "Success", Message = "User Created Successfully!" });
+            } 
+            else
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                       new Response { Status = "Error", Message = "This Role Doesn't Exist!" });
+            }
         }
     }
 }
