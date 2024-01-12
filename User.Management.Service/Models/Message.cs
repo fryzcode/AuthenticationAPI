@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace User.Management.Service.Models
 {
-    internal class Message
+    public class Message
     {
         public List<MailboxAddress> To { get; set; }
         public string Subject { get; set; }

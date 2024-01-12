@@ -5,7 +5,7 @@ using User.Management.Service.Models;
 
 namespace User.Management.Service.Services
 {
-    internal class EmailService : IEmailService
+    public class EmailService : IEmailService
     {
         private readonly EmailConfiguration _emailConfig;
         public EmailService(EmailConfiguration configuration)

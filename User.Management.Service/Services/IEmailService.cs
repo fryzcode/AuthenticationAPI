@@ -3,7 +3,7 @@ using User.Management.Service.Models;
 
 namespace User.Management.Service.Services
 {
-    internal interface IEmailService
+    public interface IEmailService
     {
         void SendEmail(Message message);
     }

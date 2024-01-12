@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Models;
+using User.Management.Service.Models;
+using User.Management.Service.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +24,14 @@ builder.Services.AddAuthentication(options =>
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 });
+
+// Email Configs
+var emailConfig = builder.Configuration
+            .GetSection("EmailConfiguration")
+            .Get<EmailConfiguration>();
+builder.Services.AddSingleton(emailConfig);
+
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

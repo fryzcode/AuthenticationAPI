@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using MyApp.Models;
 using MyApp.Models.Authentication.SignUp;
+using User.Management.Service.Models;
+using User.Management.Service.Services;
 
 namespace MyApp.Controllers
 {
@@ -12,15 +14,15 @@ namespace MyApp.Controllers
     {
         private readonly UserManager<IdentityUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
-        private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
 
         public AuthenticationController(UserManager<IdentityUser> userManager,
-                                        RoleManager<IdentityRole> roleManager, 
-                                        IConfiguration configuration)
+                                        RoleManager<IdentityRole> roleManager,
+                                        IEmailService emailService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
-            _configuration = configuration;
+            _emailService = emailService;
         }
 
         [HttpPost]
@@ -59,6 +61,18 @@ namespace MyApp.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,
                        new Response { Status = "Error", Message = "This Role Doesn't Exist!" });
             }
+        }
+
+        [HttpGet]
+        public IActionResult TestEmail()
+        {
+            var message = 
+                new Message(new string[] { "feryazhacimuradov81@gmail.com" }, "Test", "<h1>Test the email send service.</h1>");
+
+            _emailService.SendEmail(message);
+
+            return StatusCode(StatusCodes.Status200OK,
+                new Response { Status = "Success", Message = "Email Sent Successfully!" });
         }
     }
 }
