@@ -53,8 +53,14 @@ namespace MyApp.Controllers
                 }
 
                 await _userManager.AddToRoleAsync(user, role);
-                    return StatusCode(StatusCodes.Status201Created,
-                        new Response { Status = "Success", Message = "User Created Successfully!" });
+
+                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                var confirmationLink = Url.Action(nameof(ConfirmEmail), "Authentication", new { token, email = user.Email });
+                var message = new Message(new string[] { user.Email! }, "Confirmation email link", confirmationLink!);
+                _emailService.SendEmail(message);
+
+                    return StatusCode(StatusCodes.Status200OK,
+                        new Response { Status = "Success", Message = $"User created & Email sent to {user.Email} Successfully!" });
             } 
             else
             {
@@ -63,16 +69,22 @@ namespace MyApp.Controllers
             }
         }
 
-        [HttpGet]
-        public IActionResult TestEmail()
+        [HttpGet("ConfirmEmail")]
+        public async Task<IActionResult> ConfirmEmail(string token, string email)
         {
-            var message = 
-                new Message(new string[] { "feryazhacimuradov81@gmail.com" }, "Test", "<h1>Test the email send service.</h1>");
-
-            _emailService.SendEmail(message);
-
-            return StatusCode(StatusCodes.Status200OK,
-                new Response { Status = "Success", Message = "Email Sent Successfully!" });
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user != null)
+            {
+                var result = await _userManager.ConfirmEmailAsync(user, token);
+                if (result.Succeeded)
+                {
+                    return StatusCode(StatusCodes.Status200OK,
+                        new Response { Status = "Success", Message = "Email Verified Successfully." });
+                }
+            }
+                
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new Response { Status = "Error", Message = "This User doesn't exist!" });
         }
     }
 }
