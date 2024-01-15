@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using MyApp.Models;
+using MyApp.Models.Authentication.Login;
 using MyApp.Models.Authentication.SignUp;
 using User.Management.Service.Models;
 using User.Management.Service.Services;
@@ -85,6 +86,13 @@ namespace MyApp.Controllers
                 
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new Response { Status = "Error", Message = "This User doesn't exist!" });
+        }
+
+        [HttpPost]
+        [Route("login")]
+        public async Task<IActionResult> Login([FromBody] LoginModel loginModel)
+        {
+            
         }
     }
 }
