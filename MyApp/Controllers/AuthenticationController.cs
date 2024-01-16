@@ -17,6 +17,7 @@ namespace MyApp.Controllers
     public class AuthenticationController : ControllerBase
     {
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly SignInManager<IdentityUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IEmailService _emailService;
         private readonly IConfiguration _configuration;
@@ -24,11 +25,13 @@ namespace MyApp.Controllers
         public AuthenticationController(UserManager<IdentityUser> userManager,
                                         RoleManager<IdentityRole> roleManager,
                                         IEmailService emailService,
+                                        SignInManager<IdentityUser> signInManager,
                                         IConfiguration configuration)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _emailService = emailService;
+            _signInManager = signInManager;
             _configuration = configuration;
         }
 
@@ -46,7 +49,8 @@ namespace MyApp.Controllers
             {
                 Email = registerUser.Email,
                 SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = registerUser.Username
+                UserName = registerUser.Username,
+                TwoFactorEnabled=true
             };
 
             if (await _roleManager.RoleExistsAsync(role))
@@ -99,6 +103,18 @@ namespace MyApp.Controllers
         public async Task<IActionResult> Login([FromBody] LoginModel loginModel)
         {
             var user = await _userManager.FindByNameAsync(loginModel.Username);
+            if (user.TwoFactorEnabled)
+            {
+                await _signInManager.SignOutAsync();
+                await _signInManager.PasswordSignInAsync(user, loginModel.Password, false, true);
+                var token = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
+
+                var message = new Message(new string[] { user.Email! }, "OTP Confirmation", token);
+                _emailService.SendEmail(message);
+
+                return StatusCode(StatusCodes.Status200OK,
+                    new Response { Status = "Success", Message = $"We have sent an OTP to tour Email {user.Email}" });
+            }
             if (user != null && await _userManager.CheckPasswordAsync(user, loginModel.Password))
             {
                 var authClaims = new List<Claim>
@@ -123,6 +139,42 @@ namespace MyApp.Controllers
 
             }
             return Unauthorized();
+        }
+
+        [HttpPost]
+        [Route("login-2FA")]
+        public async Task<IActionResult> LoginWithOTP(string code, string username)
+        {
+            var user = await _userManager.FindByNameAsync(username);
+            var signIn = await _signInManager.TwoFactorSignInAsync("Email", code, false, false);
+            if (signIn.Succeeded)
+            {
+                if (user != null)
+                {
+                    var authClaims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                };
+
+                    var userRoles = await _userManager.GetRolesAsync(user);
+                    foreach (var role in userRoles)
+                    {
+                        authClaims.Add(new Claim(ClaimTypes.Role, role));
+                    }
+
+                    var jwtToken = GetToken(authClaims);
+
+                    return Ok(new
+                    {
+                        token = new JwtSecurityTokenHandler().WriteToken(jwtToken),
+                        expiration = jwtToken.ValidTo
+                    });
+
+                }
+            }
+            return StatusCode(StatusCodes.Status404NotFound,
+                new Response { Status = "Error", Message = "Invalid Code" });
         }
 
         private JwtSecurityToken GetToken(List<Claim> authClaims)
