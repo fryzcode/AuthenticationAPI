@@ -1,12 +1,8 @@
 ﻿
-using Azure;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using System.Data;
-using System;
+using Microsoft.Extensions.Configuration;
 using User.Management.Service.Models;
 using User.Management.Service.Models.Authentication.SignUp;
-using Microsoft.Extensions.Configuration;
 
 namespace User.Management.Service.Services
 {
@@ -18,7 +14,9 @@ namespace User.Management.Service.Services
 
         public UserManagement(UserManager<IdentityUser> userManager,
                                         RoleManager<IdentityRole> roleManager,
-                                        SignInManager<IdentityUser> signInManager
+                                        SignInManager<IdentityUser> signInManager,
+                                        IEmailService emailService,
+                                        IConfiguration configuration
                                         )
         {
             _userManager = userManager;
