@@ -3,13 +3,14 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using MyApp.Models;
-using MyApp.Models.Authentication.Login;
 using MyApp.Models.Authentication.SignUp;
 using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using User.Management.Service.Models;
+using User.Management.Service.Models.Authentication.Login;
+using User.Management.Service.Models.Authentication.SignUp;
 using User.Management.Service.Services;
 
 namespace MyApp.Controllers
@@ -22,17 +23,20 @@ namespace MyApp.Controllers
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IEmailService _emailService;
+        private readonly IUserManagement _user;
         private readonly IConfiguration _configuration;
 
         public AuthenticationController(UserManager<IdentityUser> userManager,
                                         RoleManager<IdentityRole> roleManager,
                                         IEmailService emailService,
+                                        IUserManagement user,
                                         SignInManager<IdentityUser> signInManager,
                                         IConfiguration configuration)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _emailService = emailService;
+            _user = user;
             _signInManager = signInManager;
             _configuration = configuration;
         }
@@ -40,46 +44,14 @@ namespace MyApp.Controllers
         [HttpPost]
         public async Task<IActionResult> Register([FromBody] RegisterUser registerUser, string role)
         {
-            var userExist = await _userManager.FindByEmailAsync(registerUser.Email);
+            var token = await _user.CreateUserWithTokenAsync(registerUser);
 
-            if(userExist != null) 
-            {
-                return StatusCode(StatusCodes.Status403Forbidden, new Response { Status = "Error", Message = "User already exist!" });
-            }
+            var confirmationLink = Url.Action(nameof(ConfirmEmail), "Authentication", new { token, email = registerUser.Email });
+            var message = new Message(new string[] { registerUser.Email! }, "Confirmation email link", confirmationLink!);
+            _emailService.SendEmail(message);
 
-            IdentityUser user = new()
-            {
-                Email = registerUser.Email,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = registerUser.Username,
-                TwoFactorEnabled=true
-            };
-
-            if (await _roleManager.RoleExistsAsync(role))
-            {
-                var result = await _userManager.CreateAsync(user, registerUser.Password);
-
-                if (!result.Succeeded)
-                {
-                    return StatusCode(StatusCodes.Status500InternalServerError,
-                       new Response { Status = "Error", Message = "User Failed to Create!" });
-                }
-
-                await _userManager.AddToRoleAsync(user, role);
-
-                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                var confirmationLink = Url.Action(nameof(ConfirmEmail), "Authentication", new { token, email = user.Email });
-                var message = new Message(new string[] { user.Email! }, "Confirmation email link", confirmationLink!);
-                _emailService.SendEmail(message);
-
-                    return StatusCode(StatusCodes.Status200OK,
-                        new Response { Status = "Success", Message = $"User created & Email sent to {user.Email} Successfully!" });
-            } 
-            else
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                       new Response { Status = "Error", Message = "This Role Doesn't Exist!" });
-            }
+            return StatusCode(StatusCodes.Status200OK,
+                new Response { Status = "Success", Message = "Email Verified Successfully." });
         }
 
         [HttpGet("ConfirmEmail")]
