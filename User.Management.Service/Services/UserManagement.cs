@@ -1,7 +1,10 @@
 ﻿
+using Azure;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using User.Management.Service.Models;
+using User.Management.Service.Models.Authentication.Login;
 using User.Management.Service.Models.Authentication.SignUp;
 using User.Management.Service.Models.Authentication.User;
 
@@ -71,6 +74,56 @@ namespace User.Management.Service.Services
                 return new ApiResponse<CreateUserResponse> { IsSuccess = false, StatusCode = 500, Message = "User Failed to Create!" };
             }
 
+        }
+
+        public async Task<ApiResponse<LoginOtpResponse>> GetOtpByLoginAsync(LoginModel loginModel)
+        {
+            var user = await _userManager.FindByNameAsync(loginModel.Username);
+            if (user!=null)
+            {
+                await _signInManager.SignOutAsync();
+                await _signInManager.PasswordSignInAsync(user, loginModel.Password, false, true);
+                if (user.TwoFactorEnabled)
+                {
+                    var token = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
+                    return new ApiResponse<LoginOtpResponse>
+                    {
+                        Response = new LoginOtpResponse()
+                        {
+                            User = user,
+                            Token = token,
+                            IsTwoFactorEnable = user.TwoFactorEnabled
+                        },
+                        IsSuccess = true,
+                        StatusCode = 200,
+                        Message = $"OTP send to the email {user.Email}"
+                    };
+                }
+                else 
+                {
+                    return new ApiResponse<LoginOtpResponse>
+                    {
+                        Response = new LoginOtpResponse()
+                        {
+                            User = user,
+                            Token = string.Empty,
+                            IsTwoFactorEnable = user.TwoFactorEnabled
+                        },
+                        IsSuccess = false,
+                        StatusCode = 401,
+                        Message = "2FA isn't enabled!"
+                    };
+                }
+            }
+            else
+            {
+                return new ApiResponse<LoginOtpResponse>
+                {
+                    IsSuccess = false,
+                    StatusCode = 404,
+                    Message = "User doesn't exist."
+                };
+            }
         }
     }
 }
