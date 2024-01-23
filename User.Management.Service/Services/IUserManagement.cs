@@ -1,6 +1,8 @@
 ﻿
+using Microsoft.AspNetCore.Identity;
 using User.Management.Service.Models;
 using User.Management.Service.Models.Authentication.SignUp;
+using User.Management.Service.Models.Authentication.User;
 
 namespace User.Management.Service.Services
 {
@@ -11,6 +13,8 @@ namespace User.Management.Service.Services
         /// </summary>
         /// <param name="registerUser">Description of the parameter</param>
         /// <returns>Description of the return value</returns>
-        Task<ApiResponse<string>> CreateUserWithTokenAsync(RegisterUser registerUser);
+        Task<ApiResponse<CreateUserResponse>> CreateUserWithTokenAsync(RegisterUser registerUser);
+        Task<ApiResponse<List<string>>> AssignRoleToUserAsync(List<string> roles, IdentityUser user);
+
     }
 }

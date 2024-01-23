@@ -41,16 +41,21 @@ namespace MyApp.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Register([FromBody] RegisterUser registerUser, string role)
+        public async Task<IActionResult> Register([FromBody] RegisterUser registerUser)
         {
-            var token = await _user.CreateUserWithTokenAsync(registerUser);
+            var tokenResponse = await _user.CreateUserWithTokenAsync(registerUser);
+            if (tokenResponse.IsSuccess)
+            {
+                await _user.AssignRoleToUserAsync(registerUser.Roles, tokenResponse.Response.User);
+                var confirmationLink = Url.Action(nameof(ConfirmEmail), "Authentication", new { tokenResponse.Response.Token, email = registerUser.Email });
+                var message = new Message(new string[] { registerUser.Email! }, "Confirmation email link", "gidogdigd");
+                _emailService.SendEmail(message);
 
-            var confirmationLink = Url.Action(nameof(ConfirmEmail), "Authentication", new { token, email = registerUser.Email });
-            var message = new Message(new string[] { registerUser.Email! }, "Confirmation email link", confirmationLink!);
-            _emailService.SendEmail(message);
-
-            return StatusCode(StatusCodes.Status200OK,
-                new Response { Status = "Success", Message = "Email Verified Successfully." });
+                return StatusCode(StatusCodes.Status200OK,
+                    new Response { Status = "Success", Message = "Email Verified Successfully." });
+            }
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new Response {  Message = tokenResponse.Message, IsSuccess=false });
         }
 
         [HttpGet("ConfirmEmail")]
