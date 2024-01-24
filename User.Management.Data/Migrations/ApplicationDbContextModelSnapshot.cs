@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using MyApp.Models;
+using User.Management.Data.Models;
 
 #nullable disable
 
-namespace MyApp.Migrations
+namespace User.Management.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     partial class ApplicationDbContextModelSnapshot : ModelSnapshot
@@ -51,21 +51,21 @@ namespace MyApp.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "016ff510-0b58-409d-9732-d73cbfcaad29",
+                            Id = "47ad0bf4-a1dd-4bb0-ac26-4889ccd0adef",
                             ConcurrencyStamp = "1",
                             Name = "Admin",
                             NormalizedName = "Admin"
                         },
                         new
                         {
-                            Id = "50b324fe-0414-4a3a-9712-3a5c45f3ed5c",
+                            Id = "1eafc13d-03c4-4916-ba11-c9b830f0753d",
                             ConcurrencyStamp = "2",
                             Name = "User",
                             NormalizedName = "User"
                         },
                         new
                         {
-                            Id = "c52730b2-9659-4bdd-997a-b32b6ff1ad72",
+                            Id = "a2b03451-6e3c-43d3-b84a-45a73304197f",
                             ConcurrencyStamp = "3",
                             Name = "HR",
                             NormalizedName = "HR"

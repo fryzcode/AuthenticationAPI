@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MyApp.Models;
 using System.Text;
+using User.Management.Data.Models;
 using User.Management.Service.Models;
 using User.Management.Service.Services;
 

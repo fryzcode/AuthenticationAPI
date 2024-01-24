@@ -44,11 +44,16 @@ namespace MyApp.Controllers
         public async Task<IActionResult> Register([FromBody] RegisterUser registerUser)
         {
             var tokenResponse = await _user.CreateUserWithTokenAsync(registerUser);
-            if (tokenResponse.IsSuccess)
+            if (tokenResponse.IsSuccess && tokenResponse.Response != null)
             {
                 await _user.AssignRoleToUserAsync(registerUser.Roles, tokenResponse.Response.User);
-                var confirmationLink = Url.Action(nameof(ConfirmEmail), "Authentication", new { tokenResponse.Response.Token, email = registerUser.Email });
-                var message = new Message(new string[] { registerUser.Email! }, "Confirmation email link", "gidogdigd");
+
+                //var confirmationLink = $"https://localhost:44397/confirm-account?Token={tokenResponse.Response.Token}&email={registerUser.Email}";
+
+                //var confirmationLink = Url.Action(nameof(ConfirmEmail), "Authentication", new { tokenResponse.Response.Token, email = registerUser.Email });
+                var confirmationLink = Url.Action(nameof(ConfirmEmail), "Authentication", new { tokenResponse.Response.Token, email = registerUser.Email }, Request.Scheme);
+
+                var message = new Message(new string[] { registerUser.Email! }, "Confirmation email link", confirmationLink!);
                 _emailService.SendEmail(message);
 
                 return StatusCode(StatusCodes.Status200OK,
