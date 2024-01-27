@@ -3,6 +3,7 @@ using Azure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using User.Management.Data.Models;
 using User.Management.Service.Models;
 using User.Management.Service.Models.Authentication.Login;
 using User.Management.Service.Models.Authentication.SignUp;
@@ -12,13 +13,13 @@ namespace User.Management.Service.Services
 {
     public class UserManagement : IUserManagement
     {
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
 
-        public UserManagement(UserManager<IdentityUser> userManager,
+        public UserManagement(UserManager<ApplicationUser> userManager,
                                         RoleManager<IdentityRole> roleManager,
-                                        SignInManager<IdentityUser> signInManager,
+                                        SignInManager<ApplicationUser> signInManager,
                                         IEmailService emailService,
                                         IConfiguration configuration
                                         )
@@ -28,7 +29,7 @@ namespace User.Management.Service.Services
             _signInManager = signInManager;
         }
 
-        public async Task<ApiResponse<List<string>>> AssignRoleToUserAsync(List<string> roles, IdentityUser user)
+        public async Task<ApiResponse<List<string>>> AssignRoleToUserAsync(List<string> roles, ApplicationUser user)
         {
             var assignedRole = new List<string>();
             foreach (var role in roles)
@@ -54,7 +55,7 @@ namespace User.Management.Service.Services
                 return new ApiResponse<CreateUserResponse> { IsSuccess = false, StatusCode = 403, Message = "User already exist!" };
             }
 
-            IdentityUser user = new()
+            ApplicationUser user = new()
             {
                 Email = registerUser.Email,
                 SecurityStamp = Guid.NewGuid().ToString(),
