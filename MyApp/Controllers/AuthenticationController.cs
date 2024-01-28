@@ -21,7 +21,7 @@ namespace MyApp.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
+        //private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IEmailService _emailService;
         private readonly IUserManagement _user;
         private readonly IConfiguration _configuration;
@@ -34,11 +34,11 @@ namespace MyApp.Controllers
                                         IConfiguration configuration)
         {
             _userManager = userManager;
-            _roleManager = roleManager;
+            //_roleManager = roleManager;
             _emailService = emailService;
             _user = user;
             _signInManager = signInManager;
-            _configuration = configuration;
+            //_configuration = configuration;
         }
 
         [HttpPost]
@@ -87,44 +87,25 @@ namespace MyApp.Controllers
         public async Task<IActionResult> Login([FromBody] LoginModel loginModel)
         {
             var loginOtpResponse = await _user.GetOtpByLoginAsync(loginModel);
-            if (loginOtpResponse.Response!=null)
+            if (loginOtpResponse.Response != null)
             {
                 var user = loginOtpResponse.Response.User;
                 if (user.TwoFactorEnabled)
                 {
                     var token = loginOtpResponse.Response.Token;
-                    var message = new Message(new string[] { user.Email! }, "OTP Confirmation", token);
+                    var message = new Message(new string[] { user.Email! }, "OTP Confrimation", token);
                     _emailService.SendEmail(message);
 
                     return StatusCode(StatusCodes.Status200OK,
-                        new Response { IsSuccess=loginOtpResponse.IsSuccess, Status = "Success", Message = $"We have sent an OTP to tour Email {user.Email}" });
+                     new Response { IsSuccess = loginOtpResponse.IsSuccess, Status = "Success", Message = $"We have sent an OTP to your Email {user.Email}" });
                 }
                 if (user != null && await _userManager.CheckPasswordAsync(user, loginModel.Password))
                 {
-                    var authClaims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, user.UserName),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                };
-
-                    var userRoles = await _userManager.GetRolesAsync(user);
-                    foreach (var role in userRoles)
-                    {
-                        authClaims.Add(new Claim(ClaimTypes.Role, role));
-                    }
-
-                    var jwtToken = GetToken(authClaims);
-
-                    return Ok(new
-                    {
-                        token = new JwtSecurityTokenHandler().WriteToken(jwtToken),
-                        expiration = jwtToken.ValidTo
-                    });
+                    var serviceResponse = await _user.GetJwtTokenAsync(user);
+                    return Ok(serviceResponse);
 
                 }
-
             }
-
             return Unauthorized();
         }
 

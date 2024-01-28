@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using User.Management.Data.Models;
 using User.Management.Service.Models;
@@ -145,7 +146,14 @@ namespace User.Management.Service.Services
                 authClaims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            var jwtToken = GetToken(authClaims);
+            var jwtToken = GetToken(authClaims); //access token
+            var refreshToken = GenerateRefreshToken();
+            _ = int.TryParse(_configuration["JWT:RefreshTokenValidity"], out int refreshTokenValidity);
+
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(refreshTokenValidity);
+
+            await _userManager.UpdateAsync(user);
 
             return new ApiResponse<JwtToken>
             {
@@ -160,15 +168,39 @@ namespace User.Management.Service.Services
             };
         }
 
+        public async Task<ApiResponse<JwtToken>> LoginUserWithJWTokenAsync(string otp, string userName)
+        {
+            var user = await _userManager.FindByNameAsync(userName);
+            var signIn = await _signInManager.TwoFactorSignInAsync("Email", otp, false, false);
+            if (signIn.Succeeded)
+            {
+                if (user != null)
+                {
+                    return await GetJwtTokenAsync(user);
+                }
+            }
+            return new ApiResponse<JwtToken>()
+            {
+                IsSuccess = false,
+                StatusCode = 400,
+                Message = $"Invalid Otp"
+            };
+        }
+
+
+        #region PrivateMethods
         private JwtSecurityToken GetToken(List<Claim> authClaims)
         {
             var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
             _ = int.TryParse(_configuration["JWT:TokenValidityMinutes"], out int tokenValidityMinutes);
+            var expirationTimeUtc = DateTime.UtcNow.AddMinutes(tokenValidityMinutes);
+            var localTimeZone = TimeZoneInfo.Local;
+            var expirationTimeInLocalTimeZone = TimeZoneInfo.ConvertTimeFromUtc(expirationTimeUtc, localTimeZone);
 
             var token = new JwtSecurityToken(
             issuer: _configuration["JWT:ValidIssuer"],
             audience: _configuration["JWT:ValidAudience"],
-            expires: DateTime.Now.AddMinutes(tokenValidityMinutes),
+            expires: expirationTimeInLocalTimeZone,
             claims: authClaims,
             signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
             );
@@ -176,6 +208,14 @@ namespace User.Management.Service.Services
             return token;
         }
 
-        
+        private string GenerateRefreshToken()
+        {
+            var randomNumber = new Byte[64];
+            var range = RandomNumberGenerator.Create();
+            range.GetBytes(randomNumber);
+            return Convert.ToBase64String(randomNumber);
+
+        }
+        #endregion
     }
 }

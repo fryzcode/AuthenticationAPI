@@ -19,5 +19,6 @@ namespace User.Management.Service.Services
         Task<ApiResponse<List<string>>> AssignRoleToUserAsync(List<string> roles, ApplicationUser user);
         Task<ApiResponse<LoginOtpResponse>> GetOtpByLoginAsync(LoginModel loginModel);
         Task<ApiResponse<JwtToken>> GetJwtTokenAsync(ApplicationUser user);
+        Task<ApiResponse<JwtToken>> LoginUserWithJWTokenAsync(string otp, string userName);
     }
 }
