@@ -3,6 +3,10 @@ using Azure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using User.Management.Data.Models;
 using User.Management.Service.Models;
 using User.Management.Service.Models.Authentication.Login;
@@ -16,17 +20,18 @@ namespace User.Management.Service.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IConfiguration _configuration;
 
         public UserManagement(UserManager<ApplicationUser> userManager,
                                         RoleManager<IdentityRole> roleManager,
                                         SignInManager<ApplicationUser> signInManager,
-                                        IEmailService emailService,
                                         IConfiguration configuration
                                         )
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _signInManager = signInManager;
+            _configuration = configuration;
         }
 
         public async Task<ApiResponse<List<string>>> AssignRoleToUserAsync(List<string> roles, ApplicationUser user)
@@ -76,11 +81,10 @@ namespace User.Management.Service.Services
             }
 
         }
-
         public async Task<ApiResponse<LoginOtpResponse>> GetOtpByLoginAsync(LoginModel loginModel)
         {
             var user = await _userManager.FindByNameAsync(loginModel.Username);
-            if (user!=null)
+            if (user != null)
             {
                 await _signInManager.SignOutAsync();
                 await _signInManager.PasswordSignInAsync(user, loginModel.Password, false, true);
@@ -100,7 +104,7 @@ namespace User.Management.Service.Services
                         Message = $"OTP send to the email {user.Email}"
                     };
                 }
-                else 
+                else
                 {
                     return new ApiResponse<LoginOtpResponse>
                     {
@@ -126,5 +130,52 @@ namespace User.Management.Service.Services
                 };
             }
         }
+
+        public async Task<ApiResponse<JwtToken>> GetJwtTokenAsync(ApplicationUser user)
+        {
+            var authClaims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            };
+
+            var userRoles = await _userManager.GetRolesAsync(user);
+            foreach (var role in userRoles)
+            {
+                authClaims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
+            var jwtToken = GetToken(authClaims);
+
+            return new ApiResponse<JwtToken>
+            {
+                Response = new JwtToken()
+                {
+                    Token = new JwtSecurityTokenHandler().WriteToken(jwtToken),
+                    ExpiryTokenDate = jwtToken.ValidTo,
+                },
+                IsSuccess = true,
+                StatusCode = 200,
+                Message = $"Token created"
+            };
+        }
+
+        private JwtSecurityToken GetToken(List<Claim> authClaims)
+        {
+            var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
+            _ = int.TryParse(_configuration["JWT:TokenValidityMinutes"], out int tokenValidityMinutes);
+
+            var token = new JwtSecurityToken(
+            issuer: _configuration["JWT:ValidIssuer"],
+            audience: _configuration["JWT:ValidAudience"],
+            expires: DateTime.Now.AddMinutes(tokenValidityMinutes),
+            claims: authClaims,
+            signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
+            );
+
+            return token;
+        }
+
+        
     }
 }
