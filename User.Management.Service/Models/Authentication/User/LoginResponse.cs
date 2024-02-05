@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 
 namespace User.Management.Service.Models.Authentication.User
 {
-    public class JwtToken
+    public class LoginResponse
     {
-        public string Token { get; set; }
-        public DateTime ExpiryTokenDate { get; set; }
-    } 
+        public TokenType AccessToken { get; set; }
+        public TokenType RefreshToken { get; set; }
+
+    }
 }
