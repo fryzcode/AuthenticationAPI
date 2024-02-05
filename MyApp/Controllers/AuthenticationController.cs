@@ -11,6 +11,7 @@ using User.Management.Data.Models;
 using User.Management.Service.Models;
 using User.Management.Service.Models.Authentication.Login;
 using User.Management.Service.Models.Authentication.SignUp;
+using User.Management.Service.Models.Authentication.User;
 using User.Management.Service.Services;
 
 namespace MyApp.Controllers
@@ -113,33 +114,23 @@ namespace MyApp.Controllers
         [Route("login-2FA")]
         public async Task<IActionResult> LoginWithOTP(string code, string username)
         {
-            var user = await _userManager.FindByNameAsync(username);
-            var signIn = await _signInManager.TwoFactorSignInAsync("Email", code, false, false);
-            if (signIn.Succeeded)
+            var jwt = await _user.LoginUserWithJWTokenAsync(code, username);
+            if (jwt.IsSuccess)
             {
-                if (user != null)
-                {
-                    var authClaims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name, user.UserName),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                };
+                return Ok(jwt);
+            }
+            return StatusCode(StatusCodes.Status404NotFound,
+                new Response { Status = "Error", Message = "Invalid Code" });
+        }
 
-                    var userRoles = await _userManager.GetRolesAsync(user);
-                    foreach (var role in userRoles)
-                    {
-                        authClaims.Add(new Claim(ClaimTypes.Role, role));
-                    }
-
-                    var jwtToken = GetToken(authClaims);
-
-                    return Ok(new
-                    {
-                        token = new JwtSecurityTokenHandler().WriteToken(jwtToken),
-                        expiration = jwtToken.ValidTo
-                    });
-
-                }
+        [HttpPost]
+        [Route("refresh-token")]
+        public async Task<IActionResult> RefreshToken(LoginResponse tokens)
+        {
+            var jwt = await _user.RenewAccessTokenAsync(tokens);
+            if (jwt.IsSuccess)
+            {
+                return Ok(jwt);
             }
             return StatusCode(StatusCodes.Status404NotFound,
                 new Response { Status = "Error", Message = "Invalid Code" });
