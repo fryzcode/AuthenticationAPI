@@ -1,6 +1,3 @@
-Apologies for the confusion. Here's a single file containing all the methods for the README:
-
-```markdown
 # Authentication API
 
 The Authentication API provides methods for managing users and authentication processes.
@@ -21,6 +18,7 @@ Registers a new user in the system.
   "password": "password123",
   "roles": ["user"]
 }
+
 ```
 
 ### 2. Login
