@@ -44,7 +44,7 @@ Confirm the user's email address after registration.
 **Request Parameters:**
 ```json
 {
-  "userId": "user123",
+  "email": "user@example.com",
   "token": "confirmationToken123"
 }
 ```
@@ -53,7 +53,7 @@ Confirm the user's email address after registration.
 
 Authenticate the user using a one-time password (OTP).
 
-**Endpoint:** `POST /api/auth/login-with-otp`
+**Endpoint:** `POST /api/auth/login-2FA`
 
 **Request Parameters:**
 ```json
@@ -72,7 +72,14 @@ Refresh the access token using a refresh token.
 **Request Parameters:**
 ```json
 {
-  "refreshToken": "refreshToken123"
+  "accessToken": {
+    "token": "accessToken123",
+    "expiryTokenDate": "2024-02-05T11:30:26.187Z"
+  },
+  "refreshToken": {
+    "token": "refreshToken1234",
+    "expiryTokenDate": "2024-02-05T11:30:26.187Z"
+  }
 }
 ```
 
@@ -98,18 +105,12 @@ Reset the user's password after a password reset request.
 **Request Parameters:**
 ```json
 {
-  "userId": "user123",
-  "token": "resetToken123",
-  "newPassword": "newPassword123"
+  "password": "newPassword",
+  "confirmPassword": "confirmPassword",
+  "email": "user@example.com",
+  "token": "token123"
 }
 ```
 
 ## Notes
-
-- All requests must include the header `Content-Type: application/json`.
-- Check response status codes and error handling in API responses.
-- Documentation may be updated to reflect changes in the API. Stay updated with the latest version of the documentation.
-```
-
-Feel free to use this single file for your README documentation.
 
